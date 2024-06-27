@@ -15,14 +15,24 @@ export default async function handler(req, res) {
         const response = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`);
         const responseData = await response.text();
 
-        console.log('API Response:', responseData);
+        console.log('API Response:', responseData); // Log the response data
 
-        const data = JSON.parse(responseData); // This may still throw an error if response is not in expected format
-        const translatedText = data[0][0][0];
+        let data;
+        try {
+            data = JSON.parse(responseData); // Attempt to parse JSON
+        } catch (parseError) {
+            console.error('Error parsing JSON:', parseError);
+            return res.status(500).json({ error: 'Failed to parse API response.' });
+        }
 
-        return res.status(200).json({ translatedText });
+        if (data && data[0] && data[0][0]) {
+            const translatedText = data[0][0][0];
+            return res.status(200).json({ translatedText });
+        } else {
+            return res.status(500).json({ error: 'Unexpected API response format.' });
+        }
     } catch (error) {
-        console.error('Translation error:', error.message);
-        return res.status(500).json({ error: 'Translation failed.' });
+        console.error('Translation API request error:', error);
+        return res.status(500).json({ error: 'Translation API request failed.' });
     }
 }
